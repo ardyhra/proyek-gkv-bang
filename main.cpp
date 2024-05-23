@@ -11,7 +11,7 @@ float lineOffset = 0.0f;
 float lineSpeed = -0.1f; // Kecepatan pergerakan garis
 
 // Variabel untuk pohon
-const int numTrees = 1000; // Jumlah pohon di setiap sisi
+const int numTrees = 10; // Jumlah pohon di setiap sisi
 float treePositions[numTrees]; // Posisi Z pohon
 
 void init() {
