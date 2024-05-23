@@ -1,5 +1,6 @@
 #include <GL/glut.h>
 #include <cstdlib> // Untuk fungsi rand()
+#include <cmath> // Untuk fungsi sin, cos
 
 // Posisi dan orientasi mobil
 float carX = 0.0f; // Posisi X mobil
@@ -13,6 +14,15 @@ float lineSpeed = -0.1f; // Kecepatan pergerakan garis
 // Variabel untuk pohon
 const int numTrees = 10; // Jumlah pohon di setiap sisi
 float treePositions[numTrees]; // Posisi Z pohon
+
+// Variabel untuk kamera
+float camX = 0.0f, camY = 1.0f, camZ = 5.0f; // Posisi kamera
+float camYaw = 4.7f; // Yaw kamera
+float camPitch = 0.0f; // Pitch kamera
+bool perspective = true; // Jenis kamera
+
+// Variabel untuk panning dan zoom
+float panX = 0.0f, panY = 0.0f, zoom = 1.0f;
 
 void init() {
     // Set warna background
@@ -131,15 +141,23 @@ void drawDashedLines() {
     glPopMatrix();
 }
 
+void setCamera() {
+    float camXRot = cos(camYaw) * cos(camPitch);
+    float camYRot = sin(camPitch);
+    float camZRot = sin(camYaw) * cos(camPitch);
+
+    gluLookAt(camX, camY, camZ, 
+              camX + camXRot, camY + camYRot, camZ + camZRot, 
+              0.0, 1.0, 0.0);
+}
+
 void display() {
     // Membersihkan layar dan Depth Buffer
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
 
     // Mengatur kamera
-    gluLookAt(0.0, 0.75, 5.0,  // posisi kamera
-              0.0, 0.0, 0.0,  // target
-              0.0, 1.0, 0.0); // arah atas
+    setCamera();
 
     // Menggambar jalanan
     glColor3f(0.5f, 0.5f, 0.5f);
@@ -210,7 +228,7 @@ void timer(int value) {
 }
 
 void keyboard(unsigned char key, int x, int y) {
-	float newCarX = carX; // Store the current car position
+    float newCarX = carX; // Store the current car position
 
     switch (key) {
         case 'a':
@@ -229,12 +247,45 @@ void keyboard(unsigned char key, int x, int y) {
         case 'S':
             carZ += carSpeed; // Move the car backward
             break;
+        case 'o':
+        case 'O':
+            perspective = false; // Switch to orthographic projection
+            break;
+        case 'p':
+        case 'P':
+            perspective = true; // Switch to perspective projection
+            break;
     }
 
     // Check if the new car position is within the road boundaries
     if (newCarX >= -1.5f && newCarX <= 1.5f) {
         // Update the car position if it's within the road boundaries
         carX = newCarX;
+    }
+
+    glutPostRedisplay();
+}
+
+void specialKeys(int key, int x, int y) {
+    switch (key) {
+        case GLUT_KEY_LEFT:
+            camYaw -= 0.1f; // Rotate camera left
+            break;
+        case GLUT_KEY_RIGHT:
+            camYaw += 0.1f; // Rotate camera right
+            break;
+        case GLUT_KEY_UP:
+            camPitch -= 0.1f; // Tilt camera up
+            break;
+        case GLUT_KEY_DOWN:
+            camPitch += 0.1f; // Tilt camera down
+            break;
+        case GLUT_KEY_PAGE_UP:
+            camY += 0.1f; // Move camera up
+            break;
+        case GLUT_KEY_PAGE_DOWN:
+            camY -= 0.1f; // Move camera down
+            break;
     }
 
     glutPostRedisplay();
@@ -250,7 +301,11 @@ void reshape(int w, int h) {
     // Mengatur perspektif proyeksi
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(45, ratio, 1, 1000);
+    if (perspective) {
+        gluPerspective(45, ratio, 1, 1000);
+    } else {
+        glOrtho(-10.0 * ratio, 10.0 * ratio, -10.0, 10.0, 1.0, 1000.0);
+    }
     glMatrixMode(GL_MODELVIEW);
 }
 
@@ -269,6 +324,7 @@ int main(int argc, char** argv) {
     glutReshapeFunc(reshape);
     glutTimerFunc(0, timer, 0);
     glutKeyboardFunc(keyboard);
+    glutSpecialFunc(specialKeys);
 
     // Enter GLUT event processing cycle
     glutMainLoop();
